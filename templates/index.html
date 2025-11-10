@@ -481,9 +481,7 @@
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-            formData.append('style', document.getElementById('styleSelect').value);
             formData.append('format', document.getElementById('formatSelect').value);
-            formData.append('nlp', document.getElementById('nlpCheckbox').checked);
 
             await generateMap(formData);
         });
