@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 800" width="1400" height="800">
+<defs>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+    text { font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; }
+    .journey-path { fill: none; stroke: #2563eb; stroke-width: 4; stroke-linecap: round; }
+    .touchpoint { fill: #2563eb; }
+    .touchpoint-highlight { fill: white; stroke: #2563eb; stroke-width: 3; }
+    .label-text { fill: #1e293b; font-size: 16px; font-weight: 600; }
+    .sublabel-text { fill: #64748b; font-size: 13px; font-weight: 400; }
+    .title-text { fill: #0f172a; font-size: 48px; font-weight: 700; }
+    .touchpoint-group:hover .touchpoint { fill: #1d4ed8; transform: scale(1.2); }
+  </style>
+</defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<text x="700.0" y="60" text-anchor="middle" class="title-text">Career Journey Map</text>
+<path d="M 700.0,100.0 C 860.0,137.5 940.0,212.5 1100.0,250.0 C 940.0,287.5 860.0,362.5 700.0,400.0 C 540.0,437.5 460.0,512.5 300.0,550.0 C 460.0,587.5 539.9999999999999,662.5 699.9999999999999,700.0" class="journey-path"/>
+<g class="touchpoint-group">
+  <circle cx="700.0" cy="100.0" r="12" class="touchpoint"/>
+  <circle cx="700.0" cy="100.0" r="8" class="touchpoint-highlight"/>
+  <text x="640.0" y="90.0" text-anchor="end" class="label-text">
+    <tspan x="640.0" dy="0">2011 (3.9y)</tspan>
+  </text>
+  <text x="640.0" y="110.0" text-anchor="end" class="sublabel-text">
+    <tspan x="640.0" dy="0">Software Developer</tspan>
+  </text>
+  <text x="640.0" y="126.0" text-anchor="end" class="sublabel-text">
+    <tspan x="640.0" dy="0">@ HCL Technologies</tspan>
+  </text>
+</g>
+<g class="touchpoint-group">
+  <circle cx="1100.0" cy="250.0" r="12" class="touchpoint"/>
+  <circle cx="1100.0" cy="250.0" r="8" class="touchpoint-highlight"/>
+  <text x="1160.0" y="240.0" text-anchor="start" class="label-text">
+    <tspan x="1160.0" dy="0">2015 (3.2y)</tspan>
+  </text>
+  <text x="1160.0" y="260.0" text-anchor="start" class="sublabel-text">
+    <tspan x="1160.0" dy="0">Senior Developer</tspan>
+  </text>
+  <text x="1160.0" y="276.0" text-anchor="start" class="sublabel-text">
+    <tspan x="1160.0" dy="0">@ Coforge</tspan>
+  </text>
+</g>
+<g class="touchpoint-group">
+  <circle cx="700.0" cy="400.0" r="12" class="touchpoint"/>
+  <circle cx="700.0" cy="400.0" r="8" class="touchpoint-highlight"/>
+  <text x="640.0" y="390.0" text-anchor="end" class="label-text">
+    <tspan x="640.0" dy="0">2018 (2.4y)</tspan>
+  </text>
+  <text x="640.0" y="410.0" text-anchor="end" class="sublabel-text">
+    <tspan x="640.0" dy="0">Senior Developer</tspan>
+  </text>
+  <text x="640.0" y="426.0" text-anchor="end" class="sublabel-text">
+    <tspan x="640.0" dy="0">@ Coforge</tspan>
+  </text>
+</g>
+<g class="touchpoint-group">
+  <circle cx="300.0" cy="550.0" r="12" class="touchpoint"/>
+  <circle cx="300.0" cy="550.0" r="8" class="touchpoint-highlight"/>
+  <text x="360.0" y="540.0" text-anchor="start" class="label-text">
+    <tspan x="360.0" dy="0">2020 (3.2y)</tspan>
+  </text>
+  <text x="360.0" y="560.0" text-anchor="start" class="sublabel-text">
+    <tspan x="360.0" dy="0">Senior Architect and Senior De</tspan>
+  </text>
+  <text x="360.0" y="576.0" text-anchor="start" class="sublabel-text">
+    <tspan x="360.0" dy="0">@ Coforge</tspan>
+  </text>
+</g>
+<g class="touchpoint-group">
+  <circle cx="699.9999999999999" cy="700.0" r="12" class="touchpoint"/>
+  <circle cx="699.9999999999999" cy="700.0" r="8" class="touchpoint-highlight"/>
+  <text x="639.9999999999999" y="690.0" text-anchor="end" class="label-text">
+    <tspan x="639.9999999999999" dy="0">2023 (2.1y)</tspan>
+  </text>
+  <text x="639.9999999999999" y="710.0" text-anchor="end" class="sublabel-text">
+    <tspan x="639.9999999999999" dy="0">Senior Technical Architect</tspan>
+  </text>
+  <text x="639.9999999999999" y="726.0" text-anchor="end" class="sublabel-text">
+    <tspan x="639.9999999999999" dy="0">@ Coforge</tspan>
+  </text>
+</g>
+</svg>

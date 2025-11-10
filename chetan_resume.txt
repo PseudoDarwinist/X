@@ -1,0 +1,51 @@
+Chetan Anand Singh
+Email: heychetansingh@gmail.com
+Mobile: +91-8130071804
+GitHub: https://github.com/PseudoDarwinist
+
+AI Architect, Airline Domain Expert, Storyteller - 14 years of professional experience.
+
+EXPERIENCE SUMMARY:
+• 14 years of IT experience as a consultant as well as Developer/Architect with Coforge.
+• Hands on experience in SFSC, SFMC (Email Marketing and development), HTML, SQL, and Git.
+
+CERTIFICATIONS:
+1. Salesforce Certified AI Associate - Mar 12, 2025
+2. Salesforce Certified JavaScript Developer - Mar 20, 2020
+3. Salesforce Certified Platform Data Architect - Mar 13, 2020
+4. Salesforce Certified Platform Developer - Jan 16, 2020
+5. Salesforce Certified Platform App Builder - Aug 23, 2019
+6. Salesforce Certified Platform Administrator - May 31, 2019
+7. Salesforce Certified Marketing Cloud Email Specialist - Jan 11, 2019
+
+CAREER HISTORY:
+
+Client: Scandinavian Airlines (SAS) - Oct 2023 to Current
+Role: Senior Technical Architect
+Company: Coforge
+Responsibilities: Working on Sending Digital CRM campaigns via Salesforce Marketing Cloud
+
+Client: Scandinavian Airlines (SAS) - Aug 2020 to Oct 2023
+Role: Senior Architect and Senior Developer
+Company: Coforge
+Responsibilities: Designed and Built Platform for Flight Disruption Management, Built Voucher management platform
+
+Client: International Airlines Group (IAG) - Mar 2018 to Aug 2020
+Role: Senior Developer
+Company: Coforge
+Responsibilities: Working on Claims Management platform on Salesforce Service Cloud
+
+Client: International Airlines Group (IAG) - June 2015 to Aug 2018
+Role: Senior Developer
+Company: Coforge
+Responsibilities: Email Campaigns and SMS Campaigns using SFMC
+
+Client: SouthWest Airlines - July 2011 to June 2015
+Role: Software Developer
+Company: HCL Technologies
+Responsibilities: Passenger Revenue Accounting Technology
+
+EDUCATION:
+B.Tech - Dr. MGR University - 2011
+XII - CBSE - 2005
+X - ICSE - 2003
