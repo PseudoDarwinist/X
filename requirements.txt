@@ -1,15 +1,39 @@
-# Resume Journey Map Generator
-# No external dependencies required - uses Python standard library only
+# Resume Journey Map Generator - Dependencies
 
-# Python 3.6+
-# Built-in modules used:
-# - re (regular expressions)
-# - datetime
-# - typing
-# - dataclasses
-# - argparse
+# Core Python version: 3.6+
 
-# Optional dependencies for future enhancements:
-# pypdf2>=3.0.0  # For PDF parsing
-# python-docx>=0.8.11  # For DOCX parsing
-# pdfplumber>=0.9.0  # Alternative PDF parser
+# PDF parsing support
+pdfplumber>=0.9.0
+
+# DOCX parsing support
+python-docx>=0.8.11
+
+# NLP-based extraction (optional but recommended)
+spacy>=3.5.0
+
+# Web interface
+Flask>=2.3.0
+Werkzeug>=2.3.0
+
+# Additional dependencies
+Pillow>=9.5.0  # Image processing for PDF
+
+# Development dependencies (optional)
+pytest>=7.3.0  # For testing
+black>=23.3.0  # Code formatting
+flake8>=6.0.0  # Linting
+
+# Installation instructions:
+#
+# Basic installation (CLI only, TXT files):
+#   pip install -r requirements.txt --only-binary :all:
+#
+# Full installation with all features:
+#   pip install -r requirements.txt
+#   python -m spacy download en_core_web_sm
+#
+# Minimal installation (no PDF/DOCX support):
+#   pip install Flask Werkzeug
+#
+# For NLP features, after installing spacy:
+#   python -m spacy download en_core_web_sm
