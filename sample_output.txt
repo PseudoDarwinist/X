@@ -1,0 +1,47 @@
+                        ═══ PROFESSIONAL JOURNEY MAP ═══                        
+
+    ╭──[ 2012 ]──╮
+    │ Bachelor of Science in Co │
+────┤           ├───────────>
+
+                            ╭──[ 2015 ]──╮
+                            │ Software Engineering Inte │
+                       ─────┤           ├───>
+
+                                                          │
+                                                          │
+                                                          ╰──╮
+                                                             │
+                                                             ▼
+
+                                      ╭──[ 2016 ]──╮
+                                      │ Master of Science in Arti │
+                  <───────────┤           ├────
+
+         ╭──[ 2018 ]──╮
+         │ Junior Software Engineer  │
+    <────┤           ├─────
+
+    │
+    │
+    ╰──╮
+       │
+       ▼
+
+    ╭──[ 2019 ]──╮
+    │ Software Engineer @ Amazo │
+────┤           ├───────────>
+
+                            ╭──[ 2021 ]──╮
+                            │ Senior Software Engineer  │
+                       ─────┤           ├───>
+
+                                                          │
+                                                          │
+                                                          ╰──╮
+                                                             │
+                                                             ▼
+
+                                 ╭─────[ 2023 ]─────╮
+                                 │ Staff Engineer @ OpenAI                  │
+    <───┤                                          ├────
