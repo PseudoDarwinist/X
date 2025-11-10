@@ -16,7 +16,7 @@ Flask>=2.3.0
 Werkzeug>=2.3.0
 
 # Additional dependencies
-Pillow>=9.5.0  # Image processing for PDF
+Pillow>=9.5.0  # Image processing for PDF and PNG export
 
 # Development dependencies (optional)
 pytest>=7.3.0  # For testing

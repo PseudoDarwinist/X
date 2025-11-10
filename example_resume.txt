@@ -11,14 +11,31 @@ Master of Science in Artificial Intelligence | Stanford University | 2016-2018
 WORK EXPERIENCE
 
 Software Engineering Intern | Google | 2015-2016
+• Improved search algorithm performance by 25%
+• Collaborated with team of 8 engineers on core infrastructure
 
 Junior Software Engineer | Microsoft | 2018-2019
+• Developed features used by 2M+ users daily
+• Reduced bug count by 40% through automated testing
 
 Software Engineer | Amazon | 2019-2021
+• Led migration project affecting $5M in revenue
+• Optimized database queries, improving response time by 60%
+• Managed team of 3 junior engineers
 
 Senior Software Engineer | Meta | 2021-2023
+• Architected system handling 10M requests/day
+• Increased user engagement by 35% through new features
+• Saved company $500K annually through infrastructure optimization
 
 Staff Engineer | OpenAI | 2023-Present
+• Leading AI model deployment serving 100M+ users
+• Improved model inference speed by 3x
+• Won Innovation Award for groundbreaking research
+• Generated $2M in cost savings through architectural improvements
 
 SKILLS
-Python, Java, C++, Machine Learning, System Design
+
+Python, Java, C++, JavaScript, TypeScript, React, Node.js, Django, Flask, Machine Learning,
+Deep Learning, TensorFlow, PyTorch, SQL, PostgreSQL, MongoDB, AWS, Docker, Kubernetes,
+Git, Agile, System Design, NLP, Computer Vision

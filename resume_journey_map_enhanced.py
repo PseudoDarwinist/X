@@ -32,6 +32,12 @@ try:
 except ImportError:
     NLP_SUPPORT = False
 
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_SUPPORT = True
+except ImportError:
+    PIL_SUPPORT = False
+
 
 # ANSI color codes
 class Colors:
@@ -77,6 +83,12 @@ class Milestone:
     title: str
     organization: str
     milestone_type: str  # 'education' or 'work'
+    end_date: Optional[datetime] = None
+    skills: List[str] = None
+
+    def __post_init__(self):
+        if self.skills is None:
+            self.skills = []
 
     def __str__(self):
         return f"{self.title} at {self.organization}"
@@ -92,6 +104,13 @@ class Milestone:
         if self.milestone_type == 'education':
             return Colors.CYAN
         return Colors.GREEN
+
+    def duration_years(self) -> float:
+        """Calculate duration in years"""
+        if self.end_date:
+            delta = self.end_date - self.date
+            return delta.days / 365.25
+        return 0.0
 
 
 class DocumentLoader:
@@ -225,6 +244,13 @@ class ResumeParser:
                 start_year = int(date_match.group(1))
                 end_text = date_match.group(2)
 
+                # Calculate end date
+                if end_text.lower() in ['present', 'current']:
+                    end_date = datetime.now()
+                else:
+                    end_year = int(end_text)
+                    end_date = datetime(end_year, 12, 31)
+
                 # Extract title and organization
                 parts = re.split(r'\s*[|\-]\s*', line)
 
@@ -240,13 +266,562 @@ class ResumeParser:
                             date=datetime(start_year, 1, 1),
                             title=title,
                             organization=organization,
-                            milestone_type=current_section
+                            milestone_type=current_section,
+                            end_date=end_date
                         )
                         self.milestones.append(milestone)
 
         # Sort by date
         self.milestones.sort(key=lambda m: m.date)
         return self.milestones
+
+
+class CareerStatistics:
+    """Analyze career data and generate statistics"""
+
+    def __init__(self, milestones: List[Milestone]):
+        self.milestones = milestones
+        self.work_milestones = [m for m in milestones if m.milestone_type == 'work']
+        self.education_milestones = [m for m in milestones if m.milestone_type == 'education']
+
+    def total_experience_years(self) -> float:
+        """Calculate total years of work experience"""
+        if not self.work_milestones:
+            return 0.0
+
+        total_days = 0
+        for milestone in self.work_milestones:
+            if milestone.end_date:
+                delta = milestone.end_date - milestone.date
+                total_days += delta.days
+
+        return round(total_days / 365.25, 1)
+
+    def average_job_tenure(self) -> float:
+        """Calculate average time spent at each job"""
+        if not self.work_milestones:
+            return 0.0
+
+        total_years = sum(m.duration_years() for m in self.work_milestones if m.end_date)
+        count = len([m for m in self.work_milestones if m.end_date])
+
+        return round(total_years / count, 1) if count > 0 else 0.0
+
+    def total_companies(self) -> int:
+        """Count unique companies"""
+        companies = set(m.organization for m in self.work_milestones)
+        return len(companies)
+
+    def total_degrees(self) -> int:
+        """Count education degrees"""
+        return len(self.education_milestones)
+
+    def career_gaps(self) -> List[Dict]:
+        """Detect gaps in career timeline"""
+        gaps = []
+        sorted_milestones = sorted(self.work_milestones, key=lambda m: m.date)
+
+        for i in range(len(sorted_milestones) - 1):
+            current = sorted_milestones[i]
+            next_ms = sorted_milestones[i + 1]
+
+            if current.end_date and next_ms.date:
+                gap_days = (next_ms.date - current.end_date).days
+
+                # Consider gaps > 30 days
+                if gap_days > 30:
+                    gaps.append({
+                        'start': current.end_date,
+                        'end': next_ms.date,
+                        'duration_months': round(gap_days / 30.44),
+                        'after': current.title,
+                        'before': next_ms.title
+                    })
+
+        return gaps
+
+    def career_progression_score(self) -> int:
+        """Calculate career progression score (0-100)"""
+        score = 50  # Base score
+
+        # More experience = higher score
+        years = self.total_experience_years()
+        score += min(years * 2, 20)
+
+        # Education bonus
+        score += min(self.total_degrees() * 5, 15)
+
+        # Progression indicators (looking for seniority keywords)
+        seniority_keywords = ['senior', 'lead', 'principal', 'staff', 'director', 'manager', 'vp', 'chief']
+        has_progression = any(
+            any(keyword in m.title.lower() for keyword in seniority_keywords)
+            for m in self.work_milestones
+        )
+        if has_progression:
+            score += 15
+
+        return min(score, 100)
+
+    def get_current_role(self) -> Optional[Milestone]:
+        """Get current/most recent role"""
+        if not self.milestones:
+            return None
+
+        # Find milestone with most recent end date or Present
+        current = max(self.work_milestones, key=lambda m: m.end_date if m.end_date else m.date, default=None)
+        return current
+
+    def generate_dashboard(self, color: bool = True) -> str:
+        """Generate ASCII art statistics dashboard"""
+        lines = []
+
+        # Title
+        title = "📊 CAREER STATISTICS DASHBOARD"
+        if color:
+            title = f"{Colors.BOLD}{Colors.BLUE}{title}{Colors.RESET}"
+        lines.append(title)
+        lines.append("═" * 50)
+        lines.append("")
+
+        # Experience
+        years = self.total_experience_years()
+        exp_icon = "📅" if color else "[EXP]"
+        exp_text = f"{exp_icon} Total Experience: {years} years"
+        if color:
+            exp_text = f"{exp_icon} Total Experience: {Colors.GREEN}{years}{Colors.RESET} years"
+        lines.append(exp_text)
+
+        # Average tenure
+        tenure = self.average_job_tenure()
+        tenure_icon = "⏱️ " if color else "[AVG]"
+        tenure_text = f"{tenure_icon} Average Job Tenure: {tenure} years"
+        if color:
+            tenure_text = f"{tenure_icon} Average Job Tenure: {Colors.CYAN}{tenure}{Colors.RESET} years"
+        lines.append(tenure_text)
+
+        # Companies
+        companies = self.total_companies()
+        comp_icon = "🏢" if color else "[CMP]"
+        lines.append(f"{comp_icon} Companies Worked: {companies}")
+
+        # Education
+        degrees = self.total_degrees()
+        edu_icon = "🎓" if color else "[EDU]"
+        lines.append(f"{edu_icon} Degrees Earned: {degrees}")
+
+        # Current role
+        current = self.get_current_role()
+        if current:
+            curr_icon = "💼" if color else "[NOW]"
+            curr_text = f"{curr_icon} Current Role: {current.title}"
+            if color:
+                curr_text = f"{curr_icon} Current Role: {Colors.YELLOW}{current.title}{Colors.RESET}"
+            lines.append(curr_text)
+
+        lines.append("")
+
+        # Career progression score
+        score = self.career_progression_score()
+        prog_icon = "📈" if color else "[SCR]"
+        prog_text = f"{prog_icon} Career Progression Score: {score}/100"
+
+        # Progress bar
+        filled = int(score / 10)
+        bar = "█" * filled + "░" * (10 - filled)
+        if color:
+            if score >= 80:
+                bar = f"{Colors.GREEN}{bar}{Colors.RESET}"
+            elif score >= 60:
+                bar = f"{Colors.YELLOW}{bar}{Colors.RESET}"
+            else:
+                bar = f"{Colors.RED}{bar}{Colors.RESET}"
+            prog_text = f"{prog_icon} Career Progression Score: {Colors.BOLD}{score}/100{Colors.RESET}"
+
+        lines.append(prog_text)
+        lines.append(f"   {bar}")
+        lines.append("")
+
+        # Career gaps
+        gaps = self.career_gaps()
+        if gaps:
+            gap_icon = "⚠️ " if color else "[GAP]"
+            gap_title = f"{gap_icon} Career Gaps Detected: {len(gaps)}"
+            if color:
+                gap_title = f"{gap_icon} Career Gaps Detected: {Colors.YELLOW}{len(gaps)}{Colors.RESET}"
+            lines.append(gap_title)
+
+            for gap in gaps[:3]:  # Show max 3 gaps
+                months = gap['duration_months']
+                gap_text = f"   • {months} months gap ({gap['start'].strftime('%Y')} - {gap['end'].strftime('%Y')})"
+                lines.append(gap_text)
+
+            if len(gaps) > 3:
+                lines.append(f"   ... and {len(gaps) - 3} more")
+            lines.append("")
+
+        lines.append("═" * 50)
+
+        return '\n'.join(lines)
+
+
+class SkillsExtractor:
+    """Extract and visualize skills from resume"""
+
+    # Common technical skills to look for
+    SKILL_CATEGORIES = {
+        'programming': [
+            'python', 'java', 'javascript', 'typescript', 'c++', 'c#', 'go', 'rust', 'ruby',
+            'php', 'swift', 'kotlin', 'scala', 'r', 'matlab', 'perl', 'bash', 'shell'
+        ],
+        'web': [
+            'html', 'css', 'react', 'angular', 'vue', 'node.js', 'nodejs', 'express',
+            'django', 'flask', 'spring', 'asp.net', 'jquery', 'bootstrap', 'tailwind'
+        ],
+        'data': [
+            'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'redis', 'elasticsearch',
+            'pandas', 'numpy', 'spark', 'hadoop', 'kafka', 'airflow'
+        ],
+        'ml_ai': [
+            'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'keras',
+            'scikit-learn', 'nlp', 'computer vision', 'neural networks', 'ai'
+        ],
+        'cloud': [
+            'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'jenkins',
+            'ci/cd', 'devops', 'cloud computing'
+        ],
+        'tools': [
+            'git', 'github', 'gitlab', 'jira', 'confluence', 'slack', 'agile', 'scrum'
+        ]
+    }
+
+    def __init__(self, resume_text: str, milestones: List[Milestone] = None):
+        self.resume_text = resume_text.lower()
+        self.milestones = milestones or []
+        self.skills = []
+
+    def extract_skills(self) -> List[str]:
+        """Extract skills from resume text"""
+        found_skills = set()
+
+        # Extract from all categories
+        for category, skills_list in self.SKILL_CATEGORIES.items():
+            for skill in skills_list:
+                if skill in self.resume_text:
+                    found_skills.add(skill.title())
+
+        self.skills = sorted(list(found_skills))
+        return self.skills
+
+    def generate_skills_timeline(self, color: bool = True) -> str:
+        """Generate ASCII art skills timeline"""
+        if not self.skills:
+            self.extract_skills()
+
+        if not self.skills:
+            return "No skills detected. Add a SKILLS section to your resume."
+
+        lines = []
+
+        # Title
+        title = "💡 SKILLS TIMELINE"
+        if color:
+            title = f"{Colors.BOLD}{Colors.MAGENTA}{title}{Colors.RESET}"
+        lines.append(title)
+        lines.append("═" * 50)
+        lines.append("")
+
+        # Group skills by decade or milestone period
+        if self.milestones:
+            # Show skills evolution over career
+            work_milestones = [m for m in self.milestones if m.milestone_type == 'work']
+
+            if work_milestones:
+                # Early career (first 2 milestones)
+                early_years = [m.date.year for m in work_milestones[:2]]
+                if early_years:
+                    year_range = f"{min(early_years)}-{max(early_years)}" if len(early_years) > 1 else str(early_years[0])
+                    lines.append(f"📅 Early Career ({year_range})")
+                    # Show subset of skills (simulated - first 40%)
+                    early_skills = self.skills[:max(1, len(self.skills) * 2 // 5)]
+                    for skill in early_skills:
+                        skill_color = Colors.CYAN if color else ''
+                        reset = Colors.RESET if color else ''
+                        lines.append(f"   {skill_color}▪{reset} {skill}")
+                    lines.append("")
+
+                # Mid career
+                if len(work_milestones) >= 4:
+                    mid_years = [m.date.year for m in work_milestones[2:4]]
+                    year_range = f"{min(mid_years)}-{max(mid_years)}" if len(mid_years) > 1 else str(mid_years[0])
+                    lines.append(f"📅 Mid Career ({year_range})")
+                    mid_skills = self.skills[:max(1, len(self.skills) * 3 // 5)]
+                    for skill in mid_skills:
+                        skill_color = Colors.YELLOW if color else ''
+                        reset = Colors.RESET if color else ''
+                        lines.append(f"   {skill_color}▪{reset} {skill}")
+                    lines.append("")
+
+                # Recent/Current
+                if len(work_milestones) > 4:
+                    recent_years = [m.date.year for m in work_milestones[-2:]]
+                    year_range = f"{min(recent_years)}-Present"
+                    lines.append(f"📅 Recent ({year_range})")
+                    for skill in self.skills:
+                        skill_color = Colors.GREEN if color else ''
+                        reset = Colors.RESET if color else ''
+                        lines.append(f"   {skill_color}▪{reset} {skill}")
+                    lines.append("")
+
+        else:
+            # Simple list if no milestones
+            lines.append("📋 All Skills:")
+            for skill in self.skills:
+                lines.append(f"   ▪ {skill}")
+            lines.append("")
+
+        # Summary
+        summary = f"Total Skills: {len(self.skills)}"
+        if color:
+            summary = f"Total Skills: {Colors.BOLD}{Colors.GREEN}{len(self.skills)}{Colors.RESET}"
+        lines.append(summary)
+
+        lines.append("═" * 50)
+
+        return '\n'.join(lines)
+
+    def generate_skills_cloud(self, color: bool = True, width: int = 50) -> str:
+        """Generate ASCII art skills cloud/bar chart"""
+        if not self.skills:
+            self.extract_skills()
+
+        if not self.skills:
+            return "No skills detected."
+
+        lines = []
+
+        # Title
+        title = "☁️  SKILLS CLOUD"
+        if color:
+            title = f"{Colors.BOLD}{Colors.CYAN}{title}{Colors.RESET}"
+        lines.append(title)
+        lines.append("═" * width)
+        lines.append("")
+
+        # Show top skills with bars (simulated frequency)
+        for i, skill in enumerate(self.skills[:15]):  # Top 15 skills
+            # Simulate skill "strength" (could be improved with actual frequency counting)
+            strength = max(5, 15 - i)  # Decreasing strength
+            bar_length = min(strength, width - len(skill) - 5)
+            bar = "█" * bar_length
+
+            if color:
+                # Color gradient based on strength
+                if strength > 10:
+                    bar = f"{Colors.GREEN}{bar}{Colors.RESET}"
+                elif strength > 7:
+                    bar = f"{Colors.YELLOW}{bar}{Colors.RESET}"
+                else:
+                    bar = f"{Colors.CYAN}{bar}{Colors.RESET}"
+
+            lines.append(f"{skill.ljust(20)} {bar}")
+
+        lines.append("")
+        lines.append("═" * width)
+
+        return '\n'.join(lines)
+
+
+class AchievementExtractor:
+    """Extract and highlight quantified achievements from resume"""
+
+    # Patterns for quantified achievements
+    ACHIEVEMENT_PATTERNS = [
+        r'(\d+%)',  # Percentages
+        r'(\$[\d,]+[KMB]?)',  # Money
+        r'(increased|improved|reduced|decreased|grew|generated|saved|achieved)\s+.*?(\d+%|\d+x|\$[\d,]+)',
+        r'(\d+\+?)\s+(users|customers|clients|employees|team|members)',
+        r'(led|managed|supervised)\s+.*?(\d+)',
+        r'(\d+[xX])',  # Multipliers (2x, 3X, etc.)
+        r'(top|#)\s*(\d+)',  # Rankings
+        r'(won|awarded|received)\s+.*?(award|prize|recognition)',
+    ]
+
+    def __init__(self, resume_text: str):
+        self.resume_text = resume_text
+        self.achievements = []
+
+    def extract_achievements(self) -> List[Dict]:
+        """Extract achievement statements with metrics"""
+        achievements = []
+        lines = self.resume_text.split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if not line or len(line) < 20:  # Skip short lines
+                continue
+
+            # Check if line contains achievement indicators
+            has_metric = False
+            metrics_found = []
+
+            for pattern in self.ACHIEVEMENT_PATTERNS:
+                matches = re.findall(pattern, line, re.IGNORECASE)
+                if matches:
+                    has_metric = True
+                    for match in matches:
+                        if isinstance(match, tuple):
+                            metrics_found.extend([m for m in match if m])
+                        else:
+                            metrics_found.append(match)
+
+            if has_metric:
+                achievements.append({
+                    'text': line,
+                    'metrics': list(set(metrics_found)),  # Remove duplicates
+                    'category': self._categorize_achievement(line)
+                })
+
+        self.achievements = achievements
+        return achievements
+
+    def _categorize_achievement(self, text: str) -> str:
+        """Categorize achievement by type"""
+        text_lower = text.lower()
+
+        if any(word in text_lower for word in ['revenue', 'sales', 'profit', 'money', '$']):
+            return 'financial'
+        elif any(word in text_lower for word in ['team', 'led', 'managed', 'supervised']):
+            return 'leadership'
+        elif any(word in text_lower for word in ['improved', 'optimized', 'enhanced', 'performance']):
+            return 'improvement'
+        elif any(word in text_lower for word in ['developed', 'built', 'created', 'launched']):
+            return 'creation'
+        elif any(word in text_lower for word in ['reduced', 'decreased', 'saved']):
+            return 'efficiency'
+        elif any(word in text_lower for word in ['award', 'recognition', 'won', 'achieved']):
+            return 'recognition'
+        else:
+            return 'general'
+
+    def generate_achievements_report(self, color: bool = True) -> str:
+        """Generate ASCII art achievements report"""
+        if not self.achievements:
+            self.extract_achievements()
+
+        if not self.achievements:
+            return "No quantified achievements detected.\nTip: Add metrics and numbers to your accomplishments!"
+
+        lines = []
+
+        # Title
+        title = "🏆 KEY ACHIEVEMENTS"
+        if color:
+            title = f"{Colors.BOLD}{Colors.YELLOW}{title}{Colors.RESET}"
+        lines.append(title)
+        lines.append("═" * 70)
+        lines.append("")
+
+        # Group by category
+        categories = {}
+        for ach in self.achievements:
+            cat = ach['category']
+            if cat not in categories:
+                categories[cat] = []
+            categories[cat].append(ach)
+
+        # Category icons and colors
+        category_info = {
+            'financial': ('💰', 'Financial Impact', Colors.GREEN),
+            'leadership': ('👥', 'Leadership', Colors.BLUE),
+            'improvement': ('📈', 'Performance Improvement', Colors.MAGENTA),
+            'creation': ('🚀', 'Product/Project Creation', Colors.CYAN),
+            'efficiency': ('⚡', 'Efficiency Gains', Colors.YELLOW),
+            'recognition': ('🎖️ ', 'Awards & Recognition', Colors.GREEN),
+            'general': ('✨', 'Other Achievements', Colors.WHITE)
+        }
+
+        for category, achievements in categories.items():
+            icon, title, cat_color = category_info.get(category, ('•', category.title(), Colors.WHITE))
+
+            cat_title = f"{icon} {title}"
+            if color:
+                cat_title = f"{cat_color}{cat_title}{Colors.RESET}"
+
+            lines.append(cat_title)
+            lines.append("─" * 70)
+
+            for ach in achievements:
+                # Highlight metrics in the text
+                text = ach['text']
+
+                if color and ach['metrics']:
+                    # Highlight each metric
+                    for metric in ach['metrics']:
+                        text = text.replace(metric, f"{Colors.BOLD}{Colors.YELLOW}{metric}{Colors.RESET}")
+
+                # Indent and bullet point
+                wrapped_lines = self._wrap_text(text, 65)
+                for i, wrapped_line in enumerate(wrapped_lines):
+                    if i == 0:
+                        lines.append(f"  • {wrapped_line}")
+                    else:
+                        lines.append(f"    {wrapped_line}")
+
+            lines.append("")
+
+        # Summary
+        total = len(self.achievements)
+        summary = f"Total Quantified Achievements: {total}"
+        if color:
+            summary = f"Total Quantified Achievements: {Colors.BOLD}{Colors.GREEN}{total}{Colors.RESET}"
+        lines.append(summary)
+
+        # Show metric breakdown
+        all_metrics = []
+        for ach in self.achievements:
+            all_metrics.extend(ach['metrics'])
+
+        # Count percentage achievements
+        percentages = [m for m in all_metrics if '%' in m]
+        dollar_amounts = [m for m in all_metrics if '$' in m]
+
+        if percentages or dollar_amounts:
+            lines.append("")
+            lines.append("Metrics Summary:")
+            if percentages:
+                lines.append(f"  • Percentage improvements: {len(percentages)}")
+            if dollar_amounts:
+                lines.append(f"  • Financial metrics: {len(dollar_amounts)}")
+
+        lines.append("")
+        lines.append("═" * 70)
+
+        return '\n'.join(lines)
+
+    def _wrap_text(self, text: str, width: int) -> List[str]:
+        """Wrap text to specified width"""
+        words = text.split()
+        lines = []
+        current_line = []
+        current_length = 0
+
+        for word in words:
+            # Remove ANSI codes for length calculation
+            word_length = len(re.sub(r'\033\[[0-9;]+m', '', word))
+
+            if current_length + word_length + 1 <= width:
+                current_line.append(word)
+                current_length += word_length + 1
+            else:
+                if current_line:
+                    lines.append(' '.join(current_line))
+                current_line = [word]
+                current_length = word_length
+
+        if current_line:
+            lines.append(' '.join(current_line))
+
+        return lines if lines else [text]
 
 
 class MapStyle:
@@ -595,6 +1170,91 @@ class SVGExporter:
         return '\n'.join(svg_parts)
 
 
+class PNGExporter:
+    """Export ASCII art or journey map as PNG image"""
+
+    def __init__(self, content: str, font_size: int = 12, bg_color: str = '#1e1e1e',
+                 fg_color: str = '#d4d4d4', width: int = None, height: int = None):
+        self.content = content
+        self.font_size = font_size
+        self.bg_color = bg_color
+        self.fg_color = fg_color
+        self.width = width
+        self.height = height
+
+    def generate(self) -> bytes:
+        """Generate PNG image from ASCII content"""
+        if not PIL_SUPPORT:
+            raise ImportError("PNG export requires Pillow. Install with: pip install Pillow")
+
+        # Remove ANSI color codes
+        import re
+        clean_content = re.sub(r'\033\[[0-9;]+m', '', self.content)
+
+        # Split into lines
+        lines = clean_content.split('\n')
+
+        # Try to load a monospace font, fallback to default
+        try:
+            # Try common monospace fonts
+            font = None
+            font_paths = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+                "/System/Library/Fonts/Monaco.ttf",  # macOS
+                "C:\\Windows\\Fonts\\consola.ttf",  # Windows
+                "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+            ]
+
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    font = ImageFont.truetype(font_path, self.font_size)
+                    break
+
+            if font is None:
+                font = ImageFont.load_default()
+
+        except Exception:
+            font = ImageFont.load_default()
+
+        # Calculate dimensions
+        if font.getbbox:
+            # Newer Pillow versions
+            bbox = font.getbbox('X' * 100)
+            char_width = (bbox[2] - bbox[0]) / 100
+            char_height = bbox[3] - bbox[1]
+        else:
+            # Older Pillow versions
+            char_width = self.font_size * 0.6
+            char_height = self.font_size * 1.2
+
+        max_line_length = max(len(line) for line in lines) if lines else 80
+
+        img_width = self.width or int(max_line_length * char_width + 40)
+        img_height = self.height or int(len(lines) * char_height + 40)
+
+        # Create image
+        image = Image.new('RGB', (img_width, img_height), color=self.bg_color)
+        draw = ImageDraw.Draw(image)
+
+        # Draw text
+        y_offset = 20
+        for line in lines:
+            draw.text((20, y_offset), line, fill=self.fg_color, font=font)
+            y_offset += char_height
+
+        # Convert to bytes
+        from io import BytesIO
+        buffer = BytesIO()
+        image.save(buffer, format='PNG')
+        return buffer.getvalue()
+
+    def save(self, filename: str):
+        """Save PNG to file"""
+        png_data = self.generate()
+        with open(filename, 'wb') as f:
+            f.write(png_data)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate ASCII art or SVG journey map from resume/CV',
@@ -639,9 +1299,29 @@ Examples:
         help='Generate SVG output instead of ASCII'
     )
     parser.add_argument(
+        '--png',
+        action='store_true',
+        help='Generate PNG image output instead of ASCII'
+    )
+    parser.add_argument(
         '--nlp',
         action='store_true',
         help='Use NLP-based parsing (requires spaCy)'
+    )
+    parser.add_argument(
+        '--stats',
+        action='store_true',
+        help='Show career statistics dashboard'
+    )
+    parser.add_argument(
+        '--skills',
+        action='store_true',
+        help='Show skills timeline and cloud'
+    )
+    parser.add_argument(
+        '--achievements',
+        action='store_true',
+        help='Extract and display quantified achievements'
     )
 
     args = parser.parse_args()
@@ -676,11 +1356,63 @@ Examples:
         print(f"  {color}• {m.date.year}: {m}{reset}")
     print()
 
+    # Show statistics if requested
+    if args.stats:
+        stats = CareerStatistics(milestones)
+        print(stats.generate_dashboard(color=not args.no_color))
+        print()
+
+    # Show skills if requested
+    if args.skills:
+        skills_extractor = SkillsExtractor(resume_text, milestones)
+        print(skills_extractor.generate_skills_timeline(color=not args.no_color))
+        print()
+        print(skills_extractor.generate_skills_cloud(color=not args.no_color))
+        print()
+
+    # Show achievements if requested
+    if args.achievements:
+        achievement_extractor = AchievementExtractor(resume_text)
+        print(achievement_extractor.generate_achievements_report(color=not args.no_color))
+        print()
+
     # Generate output
-    if args.svg:
+    if args.png:
+        print("Generating PNG image...")
+        # First generate ASCII map
+        map_generator = ASCIIJourneyMap(
+            milestones,
+            width=args.width,
+            style=args.style,
+            color=False  # PNG doesn't support ANSI colors
+        )
+        ascii_content = map_generator.generate()
+
+        # Convert to PNG
+        png_exporter = PNGExporter(ascii_content, font_size=14)
+
+        if args.output:
+            png_exporter.save(args.output)
+            print(f"{Colors.GREEN}PNG image saved to: {args.output}{Colors.RESET}")
+        else:
+            # Save to default filename
+            default_name = "journey_map.png"
+            png_exporter.save(default_name)
+            print(f"{Colors.GREEN}PNG image saved to: {default_name}{Colors.RESET}")
+
+    elif args.svg:
         print("Generating SVG map...")
         exporter = SVGExporter(milestones)
         output_content = exporter.generate()
+
+        # Output
+        if args.output:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                f.write(output_content)
+            print(f"{Colors.GREEN}Journey map saved to: {args.output}{Colors.RESET}")
+        else:
+            print(output_content)
+
     else:
         print(f"Generating ASCII map (style: {args.style})...")
         map_generator = ASCIIJourneyMap(
@@ -691,17 +1423,17 @@ Examples:
         )
         output_content = map_generator.generate()
 
-    # Output
-    if args.output:
-        with open(args.output, 'w', encoding='utf-8') as f:
-            # Remove ANSI codes if writing to file
-            if not args.svg and not args.no_color:
-                import re
-                output_content = re.sub(r'\033\[[0-9;]+m', '', output_content)
-            f.write(output_content)
-        print(f"{Colors.GREEN}Journey map saved to: {args.output}{Colors.RESET}")
-    else:
-        print(output_content)
+        # Output
+        if args.output:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                # Remove ANSI codes if writing to file
+                if not args.no_color:
+                    import re
+                    output_content = re.sub(r'\033\[[0-9;]+m', '', output_content)
+                f.write(output_content)
+            print(f"{Colors.GREEN}Journey map saved to: {args.output}{Colors.RESET}")
+        else:
+            print(output_content)
 
     return 0
 
