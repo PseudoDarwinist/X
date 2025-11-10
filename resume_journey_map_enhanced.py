@@ -824,6 +824,262 @@ class AchievementExtractor:
         return lines if lines else [text]
 
 
+class ResumeScorer:
+    """Score and analyze resume quality - minimalist approach"""
+
+    def __init__(self, resume_text: str, milestones: List[Milestone]):
+        self.resume_text = resume_text
+        self.milestones = milestones
+        self.score = 0
+        self.feedback = []
+
+    def calculate_score(self) -> int:
+        """Calculate overall resume score (0-100) - simple and clean"""
+        score = 0
+        self.feedback = []
+
+        # Content completeness (30 points)
+        content_score = self._score_content()
+        score += content_score
+
+        # Quantified achievements (25 points)
+        achievements_score = self._score_achievements()
+        score += achievements_score
+
+        # Experience quality (25 points)
+        experience_score = self._score_experience()
+        score += experience_score
+
+        # Skills presence (20 points)
+        skills_score = self._score_skills()
+        score += skills_score
+
+        self.score = min(score, 100)
+        return self.score
+
+    def _score_content(self) -> int:
+        """Score content completeness"""
+        score = 0
+        text_lower = self.resume_text.lower()
+
+        # Check for essential sections
+        if 'education' in text_lower:
+            score += 10
+        else:
+            self.feedback.append(('warning', 'Add an EDUCATION section'))
+
+        if any(word in text_lower for word in ['experience', 'work', 'employment']):
+            score += 10
+        else:
+            self.feedback.append(('warning', 'Add a WORK EXPERIENCE section'))
+
+        if any(word in text_lower for word in ['skills', 'technologies', 'tools']):
+            score += 10
+        else:
+            self.feedback.append(('warning', 'Add a SKILLS section'))
+
+        return score
+
+    def _score_achievements(self) -> int:
+        """Score quantified achievements"""
+        extractor = AchievementExtractor(self.resume_text)
+        achievements = extractor.extract_achievements()
+
+        count = len(achievements)
+        if count == 0:
+            score = 0
+            self.feedback.append(('improve', 'Add numbers and metrics to show impact'))
+        elif count < 3:
+            score = 10
+            self.feedback.append(('good', f'Found {count} quantified achievements'))
+        elif count < 6:
+            score = 18
+            self.feedback.append(('great', f'Good use of metrics: {count} achievements'))
+        else:
+            score = 25
+            self.feedback.append(('excellent', f'Excellent quantification: {count} achievements'))
+
+        return score
+
+    def _score_experience(self) -> int:
+        """Score experience quality"""
+        score = 0
+        work_milestones = [m for m in self.milestones if m.milestone_type == 'work']
+
+        if not work_milestones:
+            self.feedback.append(('warning', 'Add work experience'))
+            return 0
+
+        # Years of experience
+        total_years = sum(m.duration_years() for m in work_milestones if m.end_date)
+        if total_years >= 5:
+            score += 10
+        elif total_years >= 2:
+            score += 7
+        elif total_years >= 1:
+            score += 5
+
+        # Career progression
+        seniority_keywords = ['senior', 'lead', 'principal', 'staff', 'director', 'manager']
+        has_progression = any(
+            any(keyword in m.title.lower() for keyword in seniority_keywords)
+            for m in work_milestones
+        )
+
+        if has_progression:
+            score += 10
+            self.feedback.append(('good', 'Shows career progression'))
+        else:
+            self.feedback.append(('improve', 'Consider highlighting growth in responsibilities'))
+
+        # Consistency (no large gaps)
+        stats = CareerStatistics(self.milestones)
+        gaps = stats.career_gaps()
+        if not gaps:
+            score += 5
+        elif len(gaps) <= 1:
+            score += 3
+
+        return score
+
+    def _score_skills(self) -> int:
+        """Score skills section"""
+        extractor = SkillsExtractor(self.resume_text, self.milestones)
+        skills = extractor.extract_skills()
+
+        count = len(skills)
+        if count == 0:
+            score = 0
+            self.feedback.append(('warning', 'List your technical skills'))
+        elif count < 5:
+            score = 10
+            self.feedback.append(('improve', f'Add more relevant skills (currently {count})'))
+        elif count < 10:
+            score = 15
+            self.feedback.append(('good', f'{count} skills listed'))
+        else:
+            score = 20
+            self.feedback.append(('excellent', f'Strong skills portfolio: {count} skills'))
+
+        return score
+
+    def generate_report(self, color: bool = True) -> str:
+        """Generate clean, minimalist score report"""
+        if self.score == 0:
+            self.calculate_score()
+
+        lines = []
+
+        # Title - clean and simple
+        title = "RESUME SCORE"
+        if color:
+            title = f"{Colors.BOLD}{Colors.BLUE}{title}{Colors.RESET}"
+        lines.append(title)
+        lines.append("")
+
+        # Score - big and prominent
+        score_display = f"{self.score}/100"
+        if color:
+            if self.score >= 80:
+                score_color = Colors.GREEN
+            elif self.score >= 60:
+                score_color = Colors.YELLOW
+            else:
+                score_color = Colors.RED
+            score_display = f"{Colors.BOLD}{score_color}{self.score}{Colors.RESET}/100"
+
+        lines.append(f"  {score_display}")
+        lines.append("")
+
+        # Simple progress bar
+        filled = int(self.score / 10)
+        bar = "●" * filled + "○" * (10 - filled)
+        if color:
+            if self.score >= 80:
+                bar = f"{Colors.GREEN}{'●' * filled}{Colors.RESET}{'○' * (10 - filled)}"
+            elif self.score >= 60:
+                bar = f"{Colors.YELLOW}{'●' * filled}{Colors.RESET}{'○' * (10 - filled)}"
+            else:
+                bar = f"{Colors.RED}{'●' * filled}{Colors.RESET}{'○' * (10 - filled)}"
+
+        lines.append(f"  {bar}")
+        lines.append("")
+
+        # Feedback - grouped by type, clean format
+        if self.feedback:
+            excellent = [f for f in self.feedback if f[0] == 'excellent']
+            good = [f for f in self.feedback if f[0] in ['good', 'great']]
+            improve = [f for f in self.feedback if f[0] == 'improve']
+            warnings = [f for f in self.feedback if f[0] == 'warning']
+
+            if excellent:
+                lines.append("Strengths")
+                for _, msg in excellent:
+                    icon = "✓" if not color else f"{Colors.GREEN}✓{Colors.RESET}"
+                    lines.append(f"  {icon} {msg}")
+                lines.append("")
+
+            if good:
+                if not excellent:
+                    lines.append("Strengths")
+                for _, msg in good:
+                    icon = "✓" if not color else f"{Colors.GREEN}✓{Colors.RESET}"
+                    lines.append(f"  {icon} {msg}")
+                lines.append("")
+
+            if improve:
+                lines.append("Improvements")
+                for _, msg in improve:
+                    icon = "→" if not color else f"{Colors.YELLOW}→{Colors.RESET}"
+                    lines.append(f"  {icon} {msg}")
+                lines.append("")
+
+            if warnings:
+                lines.append("Required")
+                for _, msg in warnings:
+                    icon = "!" if not color else f"{Colors.RED}!{Colors.RESET}"
+                    lines.append(f"  {icon} {msg}")
+                lines.append("")
+
+        # Grade - clean letter grade
+        if self.score >= 90:
+            grade = "A+"
+            grade_text = "Excellent"
+        elif self.score >= 85:
+            grade = "A"
+            grade_text = "Very Strong"
+        elif self.score >= 80:
+            grade = "A-"
+            grade_text = "Strong"
+        elif self.score >= 75:
+            grade = "B+"
+            grade_text = "Good"
+        elif self.score >= 70:
+            grade = "B"
+            grade_text = "Above Average"
+        elif self.score >= 60:
+            grade = "B-"
+            grade_text = "Average"
+        elif self.score >= 50:
+            grade = "C"
+            grade_text = "Needs Work"
+        else:
+            grade = "D"
+            grade_text = "Needs Major Revision"
+
+        if color:
+            if self.score >= 80:
+                grade = f"{Colors.BOLD}{Colors.GREEN}{grade}{Colors.RESET}"
+            elif self.score >= 60:
+                grade = f"{Colors.BOLD}{Colors.YELLOW}{grade}{Colors.RESET}"
+            else:
+                grade = f"{Colors.BOLD}{Colors.RED}{grade}{Colors.RESET}"
+
+        lines.append(f"Grade: {grade} — {grade_text}")
+
+        return '\n'.join(lines)
+
+
 class MapStyle:
     """Base class for map styles"""
     name = "base"
@@ -1170,6 +1426,150 @@ class SVGExporter:
         return '\n'.join(svg_parts)
 
 
+class InteractiveHTMLExporter:
+    """Generate minimalist interactive HTML journey map - Apple style"""
+
+    def __init__(self, milestones: List[Milestone]):
+        self.milestones = milestones
+
+    def generate(self) -> str:
+        """Generate clean, interactive HTML with smooth animations"""
+        # Convert milestones to JavaScript data
+        milestones_js = []
+        for m in self.milestones:
+            end_year = m.end_date.year if m.end_date else None
+            milestones_js.append({
+                'title': m.title,
+                'organization': m.organization,
+                'start_year': m.date.year,
+                'end_year': end_year,
+                'type': m.milestone_type
+            })
+
+        import json
+        milestones_json = json.dumps(milestones_js)
+
+        # Load template
+        template_path = Path(__file__).parent / 'templates' / 'journey_interactive.html'
+
+        if template_path.exists():
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template = f.read()
+            return template.replace('{{MILESTONES_DATA}}', milestones_json)
+        else:
+            # Inline minimal template if file doesn't exist
+            return self._generate_inline_html(milestones_json)
+
+    def _generate_inline_html(self, milestones_json: str) -> str:
+        """Generate inline HTML if template file not found"""
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Journey</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafafa;
+            color: #1d1d1f;
+            padding: 60px 20px;
+        }}
+        .container {{ max-width: 1000px; margin: 0 auto; }}
+        h1 {{ font-size: 48px; font-weight: 600; text-align: center; margin-bottom: 60px; }}
+        .timeline {{ position: relative; padding: 20px 0; }}
+        .timeline-line {{
+            position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+            background: linear-gradient(180deg, #007aff 0%, #5856d6 100%);
+            transform: translateX(-50%); opacity: 0.3;
+        }}
+        .milestone {{
+            position: relative; margin: 60px 0; opacity: 0; transform: translateY(30px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }}
+        .milestone.visible {{ opacity: 1; transform: translateY(0); }}
+        .milestone:nth-child(odd) {{ text-align: right; padding-right: 55%; }}
+        .milestone:nth-child(even) {{ text-align: left; padding-left: 55%; }}
+        .milestone-content {{
+            background: white; padding: 24px 32px; border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            display: inline-block; min-width: 300px;
+            transition: all 0.3s ease;
+        }}
+        .milestone-content:hover {{
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }}
+        .milestone-dot {{
+            position: absolute; left: 50%; top: 24px; width: 16px; height: 16px;
+            background: #007aff; border: 4px solid white; border-radius: 50%;
+            transform: translateX(-50%); box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+            z-index: 10; transition: all 0.3s ease;
+        }}
+        .milestone-dot.education {{
+            background: #5856d6;
+            box-shadow: 0 2px 8px rgba(88, 86, 214, 0.3);
+        }}
+        .milestone-year {{
+            font-size: 14px; font-weight: 600; color: #007aff;
+            margin-bottom: 4px;
+        }}
+        .milestone-year.education {{ color: #5856d6; }}
+        .milestone-title {{
+            font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #1d1d1f;
+        }}
+        .milestone-org {{ font-size: 16px; color: #6e6e73; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Career Journey</h1>
+        <div class="timeline">
+            <div class="timeline-line"></div>
+        </div>
+    </div>
+    <script>
+        const milestones = {milestones_json};
+        const timeline = document.querySelector('.timeline');
+
+        milestones.forEach((milestone, index) => {{
+            const div = document.createElement('div');
+            div.className = 'milestone';
+
+            const dot = document.createElement('div');
+            dot.className = `milestone-dot ${{milestone.type}}`;
+
+            const content = document.createElement('div');
+            content.className = 'milestone-content';
+
+            const year = document.createElement('div');
+            year.className = `milestone-year ${{milestone.type}}`;
+            year.textContent = milestone.start_year + (milestone.end_year ? `-${{milestone.end_year}}` : '-Present');
+
+            const title = document.createElement('div');
+            title.className = 'milestone-title';
+            title.textContent = milestone.title;
+
+            const org = document.createElement('div');
+            org.className = 'milestone-org';
+            org.textContent = milestone.organization;
+
+            content.appendChild(year);
+            content.appendChild(title);
+            content.appendChild(org);
+
+            div.appendChild(dot);
+            div.appendChild(content);
+            timeline.appendChild(div);
+
+            setTimeout(() => div.classList.add('visible'), index * 150);
+        }});
+    </script>
+</body>
+</html>"""
+
+
 class PNGExporter:
     """Export ASCII art or journey map as PNG image"""
 
@@ -1304,6 +1704,11 @@ Examples:
         help='Generate PNG image output instead of ASCII'
     )
     parser.add_argument(
+        '--html',
+        action='store_true',
+        help='Generate interactive HTML journey map (minimalist design)'
+    )
+    parser.add_argument(
         '--nlp',
         action='store_true',
         help='Use NLP-based parsing (requires spaCy)'
@@ -1322,6 +1727,11 @@ Examples:
         '--achievements',
         action='store_true',
         help='Extract and display quantified achievements'
+    )
+    parser.add_argument(
+        '--score',
+        action='store_true',
+        help='Score resume quality and get improvement suggestions'
     )
 
     args = parser.parse_args()
@@ -1376,8 +1786,25 @@ Examples:
         print(achievement_extractor.generate_achievements_report(color=not args.no_color))
         print()
 
+    # Show resume score if requested
+    if args.score:
+        scorer = ResumeScorer(resume_text, milestones)
+        print(scorer.generate_report(color=not args.no_color))
+        print()
+
     # Generate output
-    if args.png:
+    if args.html:
+        print("Generating interactive HTML...")
+        html_exporter = InteractiveHTMLExporter(milestones)
+        html_content = html_exporter.generate()
+
+        output_file = args.output or "journey_map.html"
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        print(f"{Colors.GREEN}Interactive HTML saved to: {output_file}{Colors.RESET}")
+        print(f"{Colors.CYAN}Open in browser to view the minimalist journey map{Colors.RESET}")
+
+    elif args.png:
         print("Generating PNG image...")
         # First generate ASCII map
         map_generator = ASCIIJourneyMap(
