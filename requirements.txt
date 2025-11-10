@@ -1,0 +1,15 @@
+# Resume Journey Map Generator
+# No external dependencies required - uses Python standard library only
+
+# Python 3.6+
+# Built-in modules used:
+# - re (regular expressions)
+# - datetime
+# - typing
+# - dataclasses
+# - argparse
+
+# Optional dependencies for future enhancements:
+# pypdf2>=3.0.0  # For PDF parsing
+# python-docx>=0.8.11  # For DOCX parsing
+# pdfplumber>=0.9.0  # Alternative PDF parser

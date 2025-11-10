@@ -1,0 +1,14 @@
+JOHN SMITH
+Data Scientist
+
+EDUCATION
+
+B.S. Data Science | UC Berkeley | 2016-2020
+
+WORK EXPERIENCE
+
+Data Analyst Intern | Tesla | 2019-2020
+
+Data Analyst | Airbnb | 2020-2022
+
+Senior Data Scientist | Stripe | 2022-Present
