@@ -365,23 +365,23 @@
             <div class="features">
                 <div class="feature">
                     <div class="feature-icon">📄</div>
-                    <h3>Multiple Formats</h3>
-                    <p>TXT, PDF, DOCX</p>
+                    <h3>Resume Upload</h3>
+                    <p>TXT format supported</p>
                 </div>
                 <div class="feature">
-                    <div class="feature-icon">🎨</div>
-                    <h3>3 Styles</h3>
-                    <p>Classic, Modern, Minimal</p>
+                    <div class="feature-icon">🗺️</div>
+                    <h3>Visual Journey</h3>
+                    <p>Smooth curved paths</p>
                 </div>
                 <div class="feature">
-                    <div class="feature-icon">🖼️</div>
-                    <h3>ASCII & SVG</h3>
-                    <p>Multiple output formats</p>
+                    <div class="feature-icon">🎯</div>
+                    <h3>Touchpoints</h3>
+                    <p>Career milestones marked</p>
                 </div>
                 <div class="feature">
-                    <div class="feature-icon">🤖</div>
-                    <h3>NLP Parsing</h3>
-                    <p>Smart extraction</p>
+                    <div class="feature-icon">💼</div>
+                    <h3>Professional</h3>
+                    <p>Production-ready output</p>
                 </div>
             </div>
 
@@ -389,7 +389,7 @@
                 <h2>📤 Upload Your Resume</h2>
                 <p style="margin: 15px 0; color: #6c757d;">Drag & drop your resume here or click to browse</p>
                 <div class="file-input-wrapper">
-                    <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.doc">
+                    <input type="file" id="fileInput" accept=".txt">
                     <label for="fileInput" class="file-input-label">Choose File</label>
                 </div>
                 <p id="fileName" style="margin-top: 10px; color: #667eea; font-weight: 600;"></p>
@@ -397,27 +397,11 @@
 
             <div class="options">
                 <div class="option-group">
-                    <label>🎨 Map Style</label>
-                    <select id="styleSelect">
-                        <option value="classic">Classic (Box Drawing)</option>
-                        <option value="modern">Modern (Minimalist)</option>
-                        <option value="minimal">Minimal (ASCII)</option>
-                    </select>
-                </div>
-
-                <div class="option-group">
                     <label>📋 Output Format</label>
                     <select id="formatSelect">
-                        <option value="ascii">ASCII Art</option>
+                        <option value="html">Interactive HTML</option>
                         <option value="svg">SVG Image</option>
                     </select>
-                </div>
-
-                <div class="option-group">
-                    <label class="checkbox-group">
-                        <input type="checkbox" id="nlpCheckbox">
-                        <span>🤖 Use NLP Parsing (Advanced)</span>
-                    </label>
                 </div>
             </div>
 
@@ -553,7 +537,15 @@
 
         function displayOutput(data) {
             currentOutput = data.output;
-            currentFormat = data.content_type === 'image/svg+xml' ? 'svg' : 'txt';
+
+            // Determine format
+            if (data.content_type === 'image/svg+xml') {
+                currentFormat = 'svg';
+            } else if (data.content_type === 'text/html') {
+                currentFormat = 'html';
+            } else {
+                currentFormat = 'txt';
+            }
 
             document.getElementById('milestoneCount').textContent = data.milestone_count;
 
@@ -564,7 +556,7 @@
 
                 data.milestones.forEach(m => {
                     const item = document.createElement('div');
-                    item.className = `milestone-item ${m.type}`;
+                    item.className = `milestone-item ${m.type || 'work'}`;
                     item.innerHTML = `
                         <span class="milestone-year">${m.year}</span>
                         <span>${m.title} @ ${m.organization}</span>
@@ -574,7 +566,10 @@
             }
 
             // Display output
-            if (data.content_type === 'image/svg+xml') {
+            if (data.content_type === 'text/html') {
+                outputContainer.className = 'svg-output';
+                outputContainer.innerHTML = data.output;
+            } else if (data.content_type === 'image/svg+xml') {
                 outputContainer.className = 'svg-output';
                 outputContainer.innerHTML = data.output;
             } else {

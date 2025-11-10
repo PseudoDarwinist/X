@@ -10,17 +10,14 @@ import tempfile
 from pathlib import Path
 from werkzeug.utils import secure_filename
 
-# Import from enhanced version
-from resume_journey_map_enhanced import (
-    DocumentLoader, ResumeParser, NLPResumeParser,
-    ASCIIJourneyMap, SVGExporter, Colors
-)
+# Import from professional journey map
+from professional_journey_map import ResumeParser, ProfessionalJourneyMap
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'doc'}
+ALLOWED_EXTENSIONS = {'txt'}
 
 
 def allowed_file(filename):
@@ -46,7 +43,7 @@ def upload_file():
         return jsonify({'error': 'No file selected'}), 400
 
     if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type. Supported: TXT, PDF, DOCX'}), 400
+        return jsonify({'error': 'Invalid file type. Only TXT files are supported.'}), 400
 
     try:
         # Save uploaded file
@@ -54,37 +51,30 @@ def upload_file():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
-        # Get parameters
-        style = request.form.get('style', 'classic')
-        output_format = request.form.get('format', 'ascii')
-        use_nlp = request.form.get('nlp', 'false') == 'true'
-
         # Load and parse resume
-        resume_text = DocumentLoader.load(filepath)
+        with open(filepath, 'r', encoding='utf-8') as f:
+            resume_text = f.read()
 
-        if use_nlp:
-            parser = NLPResumeParser(resume_text)
-        else:
-            parser = ResumeParser(resume_text)
-
+        parser = ResumeParser(resume_text)
         milestones = parser.parse()
 
         if not milestones:
             return jsonify({
-                'error': 'No milestones found in resume. Make sure it has EDUCATION and EXPERIENCE sections.'
+                'error': 'No milestones found in resume. Make sure it has career history with dates.'
             }), 400
 
-        # Generate output
+        # Generate professional visual journey map
+        journey_map = ProfessionalJourneyMap(milestones, width=1400, height=800)
+
+        # Get format preference
+        output_format = request.form.get('format', 'html')
+
         if output_format == 'svg':
-            exporter = SVGExporter(milestones, width=1000, height=800)
-            output = exporter.generate()
+            output = journey_map.generate_svg()
             content_type = 'image/svg+xml'
         else:
-            # Disable colors for web output
-            Colors.disable()
-            map_generator = ASCIIJourneyMap(milestones, width=80, style=style, color=False)
-            output = map_generator.generate()
-            content_type = 'text/plain'
+            output = journey_map.generate_html()
+            content_type = 'text/html'
 
         # Clean up uploaded file
         os.remove(filepath)
@@ -114,36 +104,21 @@ def upload_file():
 
 @app.route('/demo')
 def demo():
-    """Demo with example resume"""
-    example_resume = """
-JANE DOE
-Software Engineer
-
-EDUCATION
-
-Bachelor of Science in Computer Science | MIT | 2012-2016
-Master of Science in AI | Stanford | 2016-2018
-
-WORK EXPERIENCE
-
-Software Engineering Intern | Google | 2015-2016
-Junior Software Engineer | Microsoft | 2018-2019
-Software Engineer | Amazon | 2019-2021
-Senior Software Engineer | Meta | 2021-2023
-Staff Engineer | OpenAI | 2023-Present
-    """
+    """Demo with Chetan's resume"""
+    # Load the example resume
+    with open('chetan_resume.txt', 'r', encoding='utf-8') as f:
+        example_resume = f.read()
 
     parser = ResumeParser(example_resume)
     milestones = parser.parse()
 
-    Colors.disable()
-    map_generator = ASCIIJourneyMap(milestones, width=80, style='classic', color=False)
-    output = map_generator.generate()
+    journey_map = ProfessionalJourneyMap(milestones, width=1400, height=800)
+    output = journey_map.generate_html()
 
     return jsonify({
         'success': True,
         'output': output,
-        'content_type': 'text/plain',
+        'content_type': 'text/html',
         'milestone_count': len(milestones)
     })
 
